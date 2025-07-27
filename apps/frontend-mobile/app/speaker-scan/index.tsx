@@ -1,0 +1,1 @@
+export default function SpeakerScan() { return null }

@@ -1,0 +1,27 @@
+{
+  "name": "@repo/supabase",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "types": "module",
+  "scripts": {
+    "dev": "echo 'no build needed'",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  },
+  "dependencies": {
+    "expo": "~53.0.20",
+    "expo-secure-store": "^12.8.1",
+    "react-native": "0.79.5"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.52.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+ "peerDependencies": {
+   "@supabase/supabase-js": "^2.52.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}
+

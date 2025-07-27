@@ -5,8 +5,7 @@
     "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "noEmit": false,
-    "types": ["nativewind/types"],
+    "noEmit": false
   },
-  "include": ["src", "utils"]
+  "include": ["src"]
 }

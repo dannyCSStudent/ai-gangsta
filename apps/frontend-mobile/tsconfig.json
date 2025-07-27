@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@repo/ui/src/components/ui/*": [
+        "../../packages/ui/src/components/ui/*"
+      ],
+      "@repo/ui/*": [
+        "../../packages/ui/*"
+      ],
+      "@repo/supabase/*": [
+        "../../packages/supabase/*"
+      ]
+    },
+    "jsx": "react-native"
+  },
+  "extends": "expo/tsconfig.base"
+}

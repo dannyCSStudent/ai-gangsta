@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "jsx": "react-native",
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@repo/supabase": ["."]
+    }
+  },
+  "include": ["*.ts", "*.tsx", "src/SupabaseProvider.tsx", "src/AppReadyProvider.tsx"]
+}
