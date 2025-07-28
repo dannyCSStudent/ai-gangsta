@@ -1,0 +1,130 @@
+ben_shapiro:
+  style: "Fast-paced, logical, confrontational"
+  ideology: "Right-libertarian, conservative"
+  common_phrases:
+    - "facts don't care about your feelings"
+    - "leftist agenda"
+    - "the facts are"
+    - "intellectual dark web"
+  linguistic_signals:
+    - aggressive rebuttals
+    - high usage of facts and statistics
+    - quick dismissals of counterpoints
+
+aoc:
+  style: "Empathetic, activist-driven, socially focused"
+  ideology: "Democratic socialist, progressive left"
+  common_phrases:
+    - "working people"
+    - "climate justice"
+    - "economic inequality"
+    - "Medicare for All"
+  linguistic_signals:
+    - emotional appeals
+    - inclusive language
+    - activist tone
+
+brookings_institution:
+  style: "Academic, formal, evidence-based"
+  ideology: "Center-left"
+  common_phrases:
+    - "policy recommendation"
+    - "data suggests"
+    - "income disparity"
+    - "urban development"
+  linguistic_signals:
+    - passive tone
+    - heavy citation of research
+    - non-partisan framing
+
+heritage_foundation:
+  style: "Policy-heavy, conservative values, national interest"
+  ideology: "Right-wing"
+  common_phrases:
+    - "free markets"
+    - "American values"
+    - "border security"
+    - "limited government"
+  linguistic_signals:
+    - structured arguments
+    - emphasis on constitutional language
+    - patriotic themes
+
+aclu:
+  style: "Legal, rights-based, civil liberties-focused"
+  ideology: "Progressive, civil-libertarian"
+  common_phrases:
+    - "freedom of speech"
+    - "systemic injustice"
+    - "equal protection under the law"
+    - "constitutional rights"
+  linguistic_signals:
+    - legal terminology
+    - references to court rulings
+    - emphasis on individual rights
+
+prageru:
+  style: "Punchy, simplified conservative education"
+  ideology: "Right-wing populist"
+  common_phrases:
+    - "Judeo-Christian values"
+    - "the left wants you to believe"
+    - "traditional values"
+    - "cultural Marxism"
+  linguistic_signals:
+    - black-and-white framing
+    - strawman setups
+    - simplified moral logic
+
+cnn_opinion:
+  style: "Mainstream, rhetorical, left-leaning but polished"
+  ideology: "Liberal mainstream"
+  common_phrases:
+    - "democracy under threat"
+    - "Republicans continue to"
+    - "we must protect"
+    - "our democracy is at risk"
+  linguistic_signals:
+    - dramatic language
+    - polished grammar
+    - reference to democratic ideals
+
+russia_today:
+  style: "Subversive, anti-West, sensational"
+  ideology: "Pro-Kremlin, anti-NATO"
+  common_phrases:
+    - "Western hypocrisy"
+    - "NATO aggression"
+    - "media censorship"
+    - "color revolutions"
+  linguistic_signals:
+    - loaded anti-West rhetoric
+    - conspiratorial framing
+    - repeated use of state actors
+
+al_jazeera:
+  style: "Global South lens, focused on human rights"
+  ideology: "Center to Center-left (Globalist)"
+  common_phrases:
+    - "occupied territories"
+    - "imperialism"
+    - "Western interference"
+    - "Palestinian voices"
+  linguistic_signals:
+    - international framing
+    - inclusion of marginalized perspectives
+    - emphasis on historical conflict
+
+elon_musk:
+  style: "Casual, contrarian, tech-optimistic"
+  ideology: "Technolibertarian / Unpredictable"
+  common_phrases:
+    - "woke mind virus"
+    - "AI safety"
+    - "free speech absolutism"
+    - "X is the everything app"
+  linguistic_signals:
+    - casual tone
+    - meme references
+    - provocative phrasing
+

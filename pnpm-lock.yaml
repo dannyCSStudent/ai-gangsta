@@ -67,6 +67,8 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
+  apps/backend-fastapi: {}
+
   apps/frontend-mobile:
     dependencies:
       '@repo/ai-components':

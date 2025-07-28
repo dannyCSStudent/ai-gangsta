@@ -1,6 +1,25 @@
+# Core web framework
 fastapi
 uvicorn[standard]
-python-dotenv
+
+# Pydantic (used by FastAPI for models)
 pydantic
-asyncpg
-sqlalchemy
+
+# For parsing YAML files
+PyYAML
+
+# For speaker/author fingerprinting and NLP
+groq
+numpy
+scikit-learn
+
+# Optional - for async HTTP requests if needed
+httpx
+
+# Optional - for CORS support
+python-multipart
+
+python-dotenv
+
+supabase
+
