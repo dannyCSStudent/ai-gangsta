@@ -92,3 +92,7 @@ tmp/
 migrations/__pycache__/
 migrations/*.pyc
 migrations/*.py
+
+# Backend temp files
+apps/backend-fastapi/tmp/
+
