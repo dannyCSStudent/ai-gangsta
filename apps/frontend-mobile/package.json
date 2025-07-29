@@ -19,6 +19,8 @@
         "@repo/ai-components": "workspace:^",
         "@repo/supabase": "workspace:^",
         "@repo/ui": "workspace:^",
+        "expo-document-picker": "^13.1.6",
+        "expo-file-system": "^18.1.11",
         "expo-router": "^5.1.4",
         "expo-status-bar": "^2.2.3",
         "nativewind": "^4.1.23",
