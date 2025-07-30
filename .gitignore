@@ -97,3 +97,7 @@ migrations/*.py
 apps/backend-fastapi/tmp/
 
 .venv/
+.venv/
+*.mp4
+*.zip
+*.bin
