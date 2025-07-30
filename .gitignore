@@ -96,3 +96,4 @@ migrations/*.py
 # Backend temp files
 apps/backend-fastapi/tmp/
 
+.venv/
