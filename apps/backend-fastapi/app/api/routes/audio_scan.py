@@ -71,3 +71,45 @@ async def stream_transcription(file: UploadFile = File(...)):
 
     return StreamingResponse(event_generator(file_bytes), media_type="text/event-stream")
 
+
+@router.get("/scan-history")
+def get_scan_history():
+    response = supabase.table("author_matches").select("*").order("created_at", desc=True).limit(20).execute()
+    return response.data
+
+
+@router.get("/scan-history/{scan_id}")
+async def get_scan_detail(scan_id: str):
+    resp = supabase.table("author_matches").select("*").eq("id", scan_id).execute()
+    if not resp.data:
+        return {"error": "Scan not found"}
+    return resp.data[0]
+
+
+@router.delete("/scan-history/{scan_id}")
+async def delete_scan(scan_id: str):
+    supabase.table("author_matches").delete().eq("id", scan_id).execute()
+    return {"status": "deleted"}
+
+
+@router.post("/scan-history/{scan_id}/rescan")
+async def rescan_scan(scan_id: str):
+    from app.core.author_matcher import load_fingerprints, match_author
+
+    record = supabase.table("author_matches").select("*").eq("id", scan_id).execute()
+    if not record.data:
+        return {"error": "Not found"}
+
+    transcript = record.data[0]["transcript"]
+    result = match_author(transcript, load_fingerprints())
+
+    # Update record
+    supabase.table("author_matches").update({
+        "author": result["author"],
+        "confidence": float(result["confidence"]),
+        "raw_scores": result["raw_scores"],
+        "timestamp": result["timestamp"],
+    }).eq("id", scan_id).execute()
+
+    return {"status": "rescanned"}
+

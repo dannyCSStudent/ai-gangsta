@@ -1,6 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
 import * as DocumentPicker from "expo-document-picker";
+import { useRouter } from "expo-router";
 
 function dataURLtoFile(dataUrl: string, filename: string) {
   const arr = dataUrl.split(",");
@@ -20,10 +27,11 @@ function dataURLtoFile(dataUrl: string, filename: string) {
 const getBaseUrl = () => {
   if (Platform.OS === "android") return "http://10.0.2.2:3002";
   if (Platform.OS === "web") return "http://localhost:3002";
-  return "http://localhost:3002"; // Adjust if running on physical device
+  return "http://localhost:3002"; // Adjust for physical devices if needed
 };
 
 export default function SmartSpeakerScanCard() {
+  const router = useRouter();
   const [transcript, setTranscript] = useState("");
   const [speaker, setSpeaker] = useState("");
   const [confidence, setConfidence] = useState<number | null>(null);
@@ -36,9 +44,6 @@ export default function SmartSpeakerScanCard() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      // Debug: check what you got
-      console.log("Picked file:", result.assets[0]);
-
       uploadAudio(result.assets[0]);
     }
   };
@@ -54,27 +59,23 @@ export default function SmartSpeakerScanCard() {
 
       if (Platform.OS === "web") {
         if (typeof file.uri === "string" && file.uri.startsWith("data:")) {
-          // Base64 data URI on web, convert to File
           const realFile = dataURLtoFile(file.uri, file.name || "audio.mp3");
           formData.append("file", realFile);
         } else if (file instanceof File) {
-          // Already a File object
           formData.append("file", file);
         } else if (file.file) {
-          // Some versions might have file.file
           formData.append("file", file.file);
         } else {
           throw new Error("Unrecognized web file format");
         }
       } else {
-        // Native platforms expect {uri, name, type}
-        if (!file.uri) {
-          throw new Error("Native file object missing uri");
-        }
+        if (!file.uri) throw new Error("Native file object missing uri");
+
         let fileUri = file.uri;
         if (Platform.OS === "android" && !fileUri.startsWith("file://")) {
           fileUri = "file://" + fileUri;
         }
+
         formData.append("file", {
           uri: fileUri,
           name: file.name || "audio.mp3",
@@ -82,23 +83,25 @@ export default function SmartSpeakerScanCard() {
         } as any);
       }
 
-      const response = await fetch(`${getBaseUrl()}/generate_transcription/stream`, {
-        method: "POST",
-        body: formData,
-        headers: {
-          Accept: "text/event-stream",
-        },
-      });
+      const response = await fetch(
+        `${getBaseUrl()}/generate_transcription/stream`,
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            Accept: "text/event-stream",
+          },
+        }
+      );
 
       if (!response.ok) {
         const text = await response.text();
         throw new Error(`HTTP ${response.status}: ${text}`);
       }
 
-      // SSE streaming parse
+      // SSE streaming
       const reader = response.body!.getReader();
       const decoder = new TextDecoder("utf-8");
-
       let buffer = "";
 
       while (true) {
@@ -106,7 +109,6 @@ export default function SmartSpeakerScanCard() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-
         const events = buffer.split("\n\n");
         buffer = events.pop() || "";
 
@@ -141,41 +143,56 @@ export default function SmartSpeakerScanCard() {
   };
 
   return (
-    <View className="bg-white rounded-2xl p-4 shadow-md w-full max-w-md mx-auto">
-      <Text className="text-xl font-bold mb-2">Smart Speaker Scan</Text>
-
-      {loading ? (
-        <View className="items-center">
-          <ActivityIndicator size="large" color="#4B9CD3" />
-          <Text className="mt-2">{transcript}</Text>
-        </View>
-      ) : (
-        <>
-          {transcript ? (
-            <>
-              <Text className="text-gray-800 mt-2">{transcript}</Text>
-              {speaker ? (
-                <Text className="mt-2 font-semibold text-blue-600">
-                  🎤 {speaker} ({Math.round((confidence ?? 0) * 100)}%)
-                </Text>
-              ) : null}
-            </>
-          ) : (
-            <Text className="text-gray-500 mb-4">
-              Upload an audio file to analyze the speaker.
-            </Text>
-          )}
-        </>
-      )}
-
-      <TouchableOpacity
-        onPress={pickAudio}
-        className="mt-4 bg-blue-600 py-2 px-4 rounded-xl"
-        disabled={loading}
-      >
-        <Text className="text-white text-center font-semibold">
-          {loading ? "Analyzing..." : "Upload Audio"}
+    <View className="flex-1 justify-center items-center p-4 bg-gray-50">
+      {/* Main Card */}
+      <View className="bg-white rounded-3xl p-6 shadow-xl w-full max-w-md">
+        <Text className="text-2xl font-bold mb-4 text-gray-900">
+          Smart Speaker Scan
         </Text>
+
+        {loading ? (
+          <View className="items-center">
+            <ActivityIndicator size="large" color="#4B9CD3" />
+            <Text className="mt-4 text-gray-700 animate-pulse">{transcript}</Text>
+          </View>
+        ) : (
+          <>
+            {transcript ? (
+              <>
+                <Text className="text-gray-800 mt-2">{transcript}</Text>
+                {speaker && (
+                  <Text className="mt-4 font-semibold text-blue-600 text-lg">
+                    🎤 {speaker} ({Math.round((confidence ?? 0) * 100)}%)
+                  </Text>
+                )}
+              </>
+            ) : (
+              <Text className="text-gray-500 mb-4">
+                Upload an audio file to analyze the speaker.
+              </Text>
+            )}
+          </>
+        )}
+
+        <TouchableOpacity
+          onPress={pickAudio}
+          className={`mt-6 py-3 px-6 rounded-xl ${
+            loading ? "bg-blue-300" : "bg-blue-600"
+          }`}
+          disabled={loading}
+        >
+          <Text className="text-white text-center font-semibold text-base">
+            {loading ? "Analyzing..." : "Upload Audio"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Floating History Button */}
+      <TouchableOpacity
+        onPress={() => router.push("/scan-history")}
+        className="absolute bottom-8 right-8 bg-blue-600 rounded-full w-14 h-14 items-center justify-center shadow-lg"
+      >
+        <Text className="text-white text-xl">📜</Text>
       </TouchableOpacity>
     </View>
   );

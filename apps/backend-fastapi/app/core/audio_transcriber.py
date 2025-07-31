@@ -36,38 +36,36 @@ def generate_transcription_sync(file) -> str:
 
 
 def generate_transcription_stream(file: UploadFile):
-    """
-    Generator for SSE streaming. Reads the uploaded file immediately to avoid
-    'I/O operation on closed file' errors.
-    """
-    # Read bytes immediately
-    file_bytes = file.read()
+    file_bytes = file.read()  # read immediately
 
-    with NamedTemporaryFile(delete=False, suffix=".mp3", dir=BASE_TMP_DIR) as tmp:
+    with NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
         tmp.write(file_bytes)
         tmp.flush()
         tmp_path = tmp.name
 
     try:
-        from app.core.audio_transcriber import generate_transcription_sync
-        print("Transcribing file:", tmp_path)
-        text = generate_transcription_sync(open(tmp_path, "rb"))
-        print("Transcript:", text)
+        import whisper
+        model = whisper.load_model("base")  # Keep base for speed
+        print(f"Streaming transcription for: {tmp_path}")
 
-        # Send transcript first
-        yield f"data: Quick Transcript: {text.strip()}\n\n".encode("utf-8")
+        # Run transcription with word timestamps
+        result = model.transcribe(tmp_path, fp16=(DEVICE=="cuda"), word_timestamps=True)
 
-        # Then author match
+        # Incrementally stream words
+        words_buffer = []
+        for segment in result["segments"]:
+            for word in segment.get("words", []):
+                words_buffer.append(word["word"])
+                yield f"data: {' '.join(words_buffer).strip()}\n\n".encode("utf-8")
+
+        # After transcript is done, run author matching
+        text = result["text"].strip()
         from app.core.author_matcher import load_fingerprints, match_author
         fingerprints = load_fingerprints()
-        result = match_author(text, fingerprints)
-        print("Author Match:", result)
+        match_result = match_author(text, fingerprints)
 
-        yield f"data: Author: {result['author']} ({result['confidence']*100:.1f}%)\n\n".encode("utf-8")
-
-        # Signal completion
+        yield f"data: Author: {match_result['author']} ({match_result['confidence']*100:.1f}%)\n\n".encode("utf-8")
         yield b"data: [DONE]\n\n"
 
     finally:
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+        os.remove(tmp_path)
