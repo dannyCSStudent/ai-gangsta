@@ -11,7 +11,6 @@ export const CrossPlatformStorage = {
     }
     if (Platform.OS === 'android' || Platform.OS === 'ios') {
       // Use SecureStore first, fallback to AsyncStorage
-      console.log(`CrossPlatformStorage.getItem 3: ${key}`)
       const secure = await SecureStore.getItemAsync(key)
       return secure ?? (await AsyncStorage.getItem(key))
     }

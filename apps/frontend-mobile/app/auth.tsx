@@ -2,7 +2,7 @@
 import { View, Text, TextInput, TouchableOpacity } from 'react-native'
 import { cn } from '../utils/cn' // Not needed unless you use it elsewhere
 import { useState } from 'react' // <-- Add this import
-import '../styles/tailwind.css'
+
 export default function AuthForm({
   title = 'Sign in',
   onSubmit,
