@@ -9,19 +9,19 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~53.0.20",
     "expo-secure-store": "^12.8.1",
     "react-native": "0.79.5"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.52.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "*",
+    "react-dom": "*"
   },
- "peerDependencies": {
-   "@supabase/supabase-js": "^2.52.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.52.1",
+    "react": "*",
+    "react-dom": "*"
   }
 }
-

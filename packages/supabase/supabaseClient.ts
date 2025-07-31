@@ -1,24 +1,31 @@
-// packages/supabase/supabaseClient.ts
-import { createClient } from '@supabase/supabase-js'
+import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
-
-// SecureStore wrapper (optional)
-const ExpoSecureStoreAdapter = {
-  getItem: SecureStore.getItemAsync,
-  setItem: SecureStore.setItemAsync,
-  removeItem: SecureStore.deleteItemAsync,
-}
-
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const isWeb = typeof window !== 'undefined'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: isWeb ? localStorage : ExpoSecureStoreAdapter,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
+export const CrossPlatformStorage = {
+  getItem: async (key: string) => {
+    if (isWeb) return window.localStorage.getItem(key)
+    if (Platform.OS === 'android' || Platform.OS === 'ios') {
+      // Use SecureStore first, fallback to AsyncStorage
+      const secure = await SecureStore.getItemAsync(key)
+      return secure ?? (await AsyncStorage.getItem(key))
+    }
+    return null
   },
-})
+  setItem: async (key: string, value: string) => {
+    if (isWeb) return window.localStorage.setItem(key, value)
+    if (Platform.OS === 'android' || Platform.OS === 'ios') {
+      await SecureStore.setItemAsync(key, value)
+      await AsyncStorage.setItem(key, value)
+    }
+  },
+  removeItem: async (key: string) => {
+    if (isWeb) return window.localStorage.removeItem(key)
+    if (Platform.OS === 'android' || Platform.OS === 'ios') {
+      await SecureStore.deleteItemAsync(key)
+      await AsyncStorage.removeItem(key)
+    }
+  },
+}
