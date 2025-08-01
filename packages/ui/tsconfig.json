@@ -7,6 +7,6 @@
     "declarationMap": true,
     "noEmit": false,
     "types": ["nativewind/types"],
-  },
-  "include": ["src", "utils"]
+  }
+
 }

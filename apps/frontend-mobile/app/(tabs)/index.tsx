@@ -1,9 +1,10 @@
-import { View, Text } from 'react-native';
+import { Text } from 'react-native'
+import { ScreenContainer } from '@repo/ui/src/layout/ScreenContainer'
 
 export default function HomeScreen() {
   return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <Text className="text-xl font-bold">Welcome to Gangsta AI</Text>
-    </View>
-  );
+    <ScreenContainer className="items-center justify-center">
+      <Text className="text-2xl font-bold text-gray-800">🏠 Home Screen</Text>
+    </ScreenContainer>
+  )
 }

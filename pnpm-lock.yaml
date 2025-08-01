@@ -75,6 +75,9 @@ importers:
 
   apps/frontend-mobile:
     dependencies:
+      '@expo/vector-icons':
+        specifier: ^14.1.0
+        version: 14.1.0(expo-font@13.3.2(expo@53.0.20(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0)
       '@react-native-async-storage/async-storage':
         specifier: ^2.2.0
         version: 2.2.0(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))
@@ -99,6 +102,9 @@ importers:
       expo-secure-store:
         specifier: ^14.2.3
         version: 14.2.3(expo@53.0.20(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0))
+      expo-splash-screen:
+        specifier: ^0.30.10
+        version: 0.30.10(expo@53.0.20(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0))
       expo-status-bar:
         specifier: ^2.2.3
         version: 2.2.3(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0)
@@ -135,6 +141,9 @@ importers:
       react-native-web:
         specifier: ^0.20.0
         version: 0.20.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      useColorScheme:
+        specifier: link:@/hooks/useColorScheme
+        version: link:@/hooks/useColorScheme
     devDependencies:
       '@types/react':
         specifier: ^19
@@ -151,6 +160,15 @@ importers:
 
   apps/frontend-web:
     dependencies:
+      '@repo/ai-components':
+        specifier: workspace:^
+        version: link:../../packages/ai-components
+      '@repo/supabase':
+        specifier: workspace:^
+        version: link:../../packages/supabase
+      '@repo/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       next:
         specifier: 15.4.1
         version: 15.4.1(@babel/core@7.28.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -160,6 +178,12 @@ importers:
       react-dom:
         specifier: 19.0.0
         version: 19.0.0(react@19.0.0)
+      react-native-safe-area-context:
+        specifier: 5.4.0
+        version: 5.4.0(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0)
+      react-native-web:
+        specifier: ^0.20.0
+        version: 0.20.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3
@@ -2880,6 +2904,11 @@ packages:
 
   expo-secure-store@14.2.3:
     resolution: {integrity: sha512-hYBbaAD70asKTFd/eZBKVu+9RTo9OSTMMLqXtzDF8ndUGjpc6tmRCoZtrMHlUo7qLtwL5jm+vpYVBWI8hxh/1Q==}
+    peerDependencies:
+      expo: '*'
+
+  expo-splash-screen@0.30.10:
+    resolution: {integrity: sha512-Tt9va/sLENQDQYeOQ6cdLdGvTZ644KR3YG9aRlnpcs2/beYjOX1LHT510EGzVN9ljUTg+1ebEo5GGt2arYtPjw==}
     peerDependencies:
       expo: '*'
 
@@ -8317,6 +8346,13 @@ snapshots:
   expo-secure-store@14.2.3(expo@53.0.20(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0)):
     dependencies:
       expo: 53.0.20(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0)
+
+  expo-splash-screen@0.30.10(expo@53.0.20(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0)):
+    dependencies:
+      '@expo/prebuild-config': 9.0.11
+      expo: 53.0.20(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0)))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0)
+    transitivePeerDependencies:
+      - supports-color
 
   expo-status-bar@2.2.3(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.1.9)(react@19.0.0))(react@19.0.0):
     dependencies:
