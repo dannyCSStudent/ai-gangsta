@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@repo/supabase/supabaseClient';
 import { type NewsArticle } from '@repo/supabase/types/types';
 import { LuExternalLink } from 'react-icons/lu';
+import { ScreenContainer } from '@repo/ui/';
 
 /**
  * Renders the news page for the web application.
@@ -55,9 +56,11 @@ export default function NewsPage() {
   // Display a loading message while data is being fetched.
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-zinc-50 dark:bg-zinc-950">
-        <p className="text-xl text-zinc-500 dark:text-zinc-400">Loading news...</p>
-      </div>
+      <ScreenContainer>
+        <div className="flex justify-center items-center h-screen bg-zinc-50 dark:bg-zinc-950">
+          <p className="text-xl text-zinc-500 dark:text-zinc-400">Loading news...</p>
+        </div>
+      </ScreenContainer>
     );
   }
 
