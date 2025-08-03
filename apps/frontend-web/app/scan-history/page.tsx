@@ -85,15 +85,18 @@ export default function ScanHistoryPage() {
 
   if (history.length === 0) {
     return (
+      <ScreenContainer>
       <div className="flex-1 flex justify-center items-center min-h-screen bg-zinc-50 dark:bg-zinc-950">
         <p className="text-zinc-500 dark:text-zinc-400 text-center px-8">
           No scans yet. Upload an audio file to start building your history.
         </p>
       </div>
+      </ScreenContainer>
     );
   }
 
   return (
+    <ScreenContainer>
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4 sm:p-6 lg:p-8">
       <h1 className="text-3xl font-bold mb-6 text-zinc-900 dark:text-white">Scan History</h1>
 
@@ -110,7 +113,7 @@ export default function ScanHistoryPage() {
           return (
             <a
               key={item.id}
-              onClick={() => router.push(`/scan-detail/${item.id}`)}
+              onClick={() => router.push(`/scan-history/${item.id}`)}
               className="block cursor-pointer bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-sm transition-transform transform hover:scale-[1.02] hover:shadow-md border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-zinc-800 dark:text-zinc-100 font-semibold mb-1">{item.author}</p>
@@ -132,5 +135,6 @@ export default function ScanHistoryPage() {
         })}
       </div>
     </div>
+    </ScreenContainer>
   );
 }

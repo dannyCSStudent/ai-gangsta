@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, ActivityIndicator, ScrollView, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Platform } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
 
 const getBaseUrl = () => {
   if (Platform.OS === "android") return "http://10.0.2.2:3002";
@@ -54,12 +53,13 @@ export default function ScanDetailScreen() {
     return (
       <View className="flex-1 justify-center items-center bg-gray-50">
         <Text className="text-gray-500">Scan not found.</Text>
-        <Pressable
-          onPress={() => router.back()}
+        <TouchableOpacity
+          // Fixed: Use router.push to explicitly go back to the scan history page
+          onPress={() => router.push('/scan-history')}
           className="mt-4 px-4 py-2 bg-blue-600 rounded-xl"
         >
           <Text className="text-white font-semibold">Go Back</Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -99,12 +99,13 @@ export default function ScanDetailScreen() {
           </View>
         )}
 
-        <Pressable
-          onPress={() => router.back()}
+        <TouchableOpacity
+          // Fixed: Use router.push to explicitly go back to the scan history page
+          onPress={() => router.push('/scan-history')}
           className="mt-6 px-4 py-2 bg-blue-600 rounded-xl self-start"
         >
           <Text className="text-white font-semibold">← Back to History</Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

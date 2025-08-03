@@ -67,13 +67,16 @@ export default function NewsPage() {
   // Display an error message if the fetch failed.
   if (error) {
     return (
+      <ScreenContainer>
       <div className="flex justify-center items-center h-screen bg-zinc-50 dark:bg-zinc-950">
         <p className="text-xl text-red-500">{error}</p>
       </div>
+      </ScreenContainer>
     );
   }
 
   return (
+    <ScreenContainer>
     <div className="min-h-screen p-4 sm:p-6 md:p-8 lg:p-12 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-white">
       <h1 className="text-3xl sm:text-4xl font-extrabold text-center mb-8">Latest News</h1>
       {news.length === 0 ? (
@@ -116,5 +119,6 @@ export default function NewsPage() {
         </div>
       )}
     </div>
+    </ScreenContainer>
   );
 }
