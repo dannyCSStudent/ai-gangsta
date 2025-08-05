@@ -21,6 +21,7 @@
         "@repo/ai-components": "workspace:^",
         "@repo/supabase": "workspace:^",
         "@repo/ui": "workspace:^",
+        "expo-av": "^15.1.7",
         "expo-document-picker": "^13.1.6",
         "expo-file-system": "^18.1.11",
         "expo-router": "^5.1.4",

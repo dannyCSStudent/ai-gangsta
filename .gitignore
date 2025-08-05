@@ -61,6 +61,7 @@ apps/backend-fastapi/.env
 apps/backend-fastapi/.env.local
 apps/backend-fastapi/*.env
 
+
 # Python byte-compiled & cache
 *.log
 *.sqlite3
@@ -95,9 +96,12 @@ migrations/*.py
 
 # Backend temp files
 apps/backend-fastapi/tmp/
+apps/backend-fastapi/app/tmp/songs/
 
 .venv/
 .venv/
 *.mp4
 *.zip
 *.bin
+
+
