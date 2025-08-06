@@ -1,9 +1,9 @@
-# app/api/routes/news_to_lyrics.py
 from fastapi import APIRouter, HTTPException, Query, Body
-from typing import Optional
 from pydantic import BaseModel
 from supabase import create_client
 import os
+from typing import Optional
+from datetime import datetime
 
 from app.ai.lyrics_generator import generate_lyrics
 from app.ai.tts_generator import generate_vocals
@@ -28,15 +28,15 @@ async def news_to_song(
     genre: Optional[str] = Query("gangsta rap"),
     body: Optional[LyricsRequest] = Body(None)
 ):
-    # Priority: JSON body > query params
+    # Handle JSON body override
     if body:
         news_id = body.news_id
-        genre = body.genre
+        genre = body.genre or genre
 
     if not news_id:
-        raise HTTPException(status_code=422, detail="Missing news_id")
+        raise HTTPException(status_code=422, detail="news_id is required")
 
-    # 1. Fetch news from Supabase
+    # 1️⃣ Fetch news article
     resp = supabase.table("smart_news").select("*").eq("id", news_id).execute()
     if not resp.data:
         raise HTTPException(status_code=404, detail="News article not found")
@@ -45,21 +45,30 @@ async def news_to_song(
     title = article.get("title")
     summary = article.get("summary")
 
-    # 2. Generate lyrics
+    # 2️⃣ Generate lyrics
     lyrics = generate_lyrics(title, summary, genre)
 
-    # 3. Generate vocals
+    # 3️⃣ Generate vocals (TTS)
     vocals_path = generate_vocals(lyrics)
 
-    # 4. Mix with beat
+    # 4️⃣ Mix with beat
     beat_path = "app/data/beats/beat1.mp3"
     output_path = f"app/tmp/songs/{news_id}_song.mp3"
     final_song = mix_audio(vocals_path, beat_path, output_path)
-    if not final_song:
-        raise HTTPException(status_code=500, detail="Failed to mix audio")
+
+    song_url = f"/songs/{news_id}_song.mp3"
+
+    # 5️⃣ Save to `news_songs` table in Supabase
+    supabase.table("news_songs").insert({
+        "news_id": news_id,
+        "song_url": song_url,
+        "genre": genre,
+        "created_at": datetime.utcnow().isoformat()
+    }).execute()
+
     return {
         "news_id": news_id,
         "genre": genre,
         "lyrics": lyrics,
-        "song_url": f"/songs/{news_id}_song.mp3"
+        "song_url": song_url
     }
