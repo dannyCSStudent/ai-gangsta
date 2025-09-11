@@ -1,17 +1,14 @@
+import os
 from fastapi import APIRouter, HTTPException, Query, Body
 from pydantic import BaseModel
-from supabase import create_client
-import os
 from typing import Optional
-from datetime import datetime
-
+from supabase import create_client
 from app.ai.lyrics_generator import generate_lyrics
 from app.ai.tts_generator import generate_vocals
 from app.services.audio_mixer import mix_audio
 
 router = APIRouter()
 
-# Supabase client
 supabase = create_client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -23,52 +20,48 @@ class LyricsRequest(BaseModel):
 
 @router.post("/news-to-song")
 async def news_to_song(
-    # Accept both query params and JSON body
-    news_id: Optional[str] = Query(None, description="News UUID"),
+    news_id: Optional[str] = Query(None),
     genre: Optional[str] = Query("gangsta rap"),
     body: Optional[LyricsRequest] = Body(None)
 ):
-    # Handle JSON body override
+    # Pick from JSON if query empty
     if body:
-        news_id = body.news_id
+        news_id = news_id or body.news_id
         genre = body.genre or genre
 
     if not news_id:
-        raise HTTPException(status_code=422, detail="news_id is required")
+        raise HTTPException(status_code=400, detail="Missing news_id")
 
-    # 1️⃣ Fetch news article
-    resp = supabase.table("smart_news").select("*").eq("id", news_id).execute()
-    if not resp.data:
-        raise HTTPException(status_code=404, detail="News article not found")
+    print("Generating WAV song for:", news_id)
 
-    article = resp.data[0]
-    title = article.get("title")
-    summary = article.get("summary")
+    # Fetch news item
+    news_item = supabase.table("smart_news").select("*").eq("id", news_id).single().execute()
+    if not news_item.data:
+        raise HTTPException(status_code=404, detail="News not found")
 
-    # 2️⃣ Generate lyrics
+    title = news_item.data["title"]
+    summary = news_item.data["summary"]
+
+    # Generate lyrics & vocals
     lyrics = generate_lyrics(title, summary, genre)
+    vocals_path = generate_vocals(lyrics)  # This can remain MP3 or WAV
 
-    # 3️⃣ Generate vocals (TTS)
-    vocals_path = generate_vocals(lyrics)
-
-    # 4️⃣ Mix with beat
+    # Mix with beat -> output as WAV for mobile reliability
     beat_path = "app/data/beats/beat1.mp3"
-    output_path = f"app/tmp/songs/{news_id}_song.mp3"
-    final_song = mix_audio(vocals_path, beat_path, output_path)
+    output_path = f"app/tmp/songs/{news_id}_song.wav"
+    mix_audio(vocals_path, beat_path, output_path)
 
-    song_url = f"/songs/{news_id}_song.mp3"
-
-    # 5️⃣ Save to `news_songs` table in Supabase
+    # Save to Supabase history
     supabase.table("news_songs").insert({
         "news_id": news_id,
-        "song_url": song_url,
         "genre": genre,
-        "created_at": datetime.utcnow().isoformat()
+        "lyrics": lyrics,
+        "song_url": f"/songs/{news_id}_song.wav"
     }).execute()
 
     return {
         "news_id": news_id,
         "genre": genre,
         "lyrics": lyrics,
-        "song_url": song_url
+        "song_url": f"/songs/{news_id}_song.wav"
     }

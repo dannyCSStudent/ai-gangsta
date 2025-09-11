@@ -27,6 +27,13 @@ export default function TabLayout() {
               return <Ionicons name="mic-outline" size={size} color={color} />
             case 'scan-history/index':
               return <Ionicons name="mic-outline" size={size} color={color} />
+            case 'song-history/index':
+              return <Ionicons name="mic-outline" size={size} color={color} />
+            case 'post-truth/index':
+              return <Ionicons name="mic-outline" size={size} color={color} />
+            case 'truth-scan-results/index':
+              return <Ionicons name="newspaper-outline" size={size} color={color} />
+              
             default:
               return null
           }
@@ -35,8 +42,12 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
       <Tabs.Screen name="news/index" options={{ title: 'News' }} />
+      <Tabs.Screen name="song-history/index" options={{ title: 'Song Histroy' }} />
       <Tabs.Screen name="speaker-scan/index" options={{ title: 'Scan' }} />
       <Tabs.Screen name="scan-history/index" options={{ title: 'Scan Histroy' }} />
+      <Tabs.Screen name="post-truth/index" options={{ title: "Truth Scanner" }} />
+      <Tabs.Screen name="truth-scan-results/index" options={{ title: "Truth Scan Results" }} />
+
     </Tabs>
   )
 }

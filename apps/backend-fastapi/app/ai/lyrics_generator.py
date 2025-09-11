@@ -22,7 +22,7 @@ def generate_lyrics(title: str, summary: str, genre: str = "gangsta rap") -> str
 
     # Call Groq Chat Completion
     response = client.chat.completions.create(
-        model="llama3-70b-8192",  # Recommended for long, creative output
+        model="llama-3.1-8b-instant",  # Recommended for long, creative output
         messages=[
             {"role": "system", "content": "You are a creative songwriter AI."},
             {"role": "user", "content": prompt},
