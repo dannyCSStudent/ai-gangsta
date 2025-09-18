@@ -1,73 +1,60 @@
+import json
 import logging
-from typing import Optional
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from app.config import DATABASE_URL
+from typing import Dict, Any, Optional
+from supabase import Client
 
 logger = logging.getLogger("post_truth_scanner")
 
-def get_db_session() -> Session:
-    """Creates a new database session."""
-    try:
-        engine = create_engine(DATABASE_URL)
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        return SessionLocal()
-    except Exception as e:
-        logger.error(f"Failed to create database session: {e}")
-        raise
-
-def save_scan_result(supabase, scan_id: str, results: dict, db: Optional[Session] = None):
+def save_scan_result(
+    supabase: Client, 
+    scan_id: str, 
+    caption: str, 
+    analysis_data: Dict[str, Any]
+) -> bool:
     """
-    Saves the analysis results to the Supabase database.
-    
-    Args:
-        supabase: The Supabase client instance.
-        scan_id (str): The ID of the scan.
-        results (dict): A dictionary containing the analysis results.
-        db (Session, optional): The SQLAlchemy database session. Not used for Supabase.
+    Saves the final scan result, including a complete analysis, to the Supabase database.
+    This function now expects a flat dictionary for the analysis data.
     """
     try:
-        # Get the nested 'comparison_results' dictionary.
-        comparison_results = results.get('comparison_results', {})
-        
-        # Get the list of individual claim results from the 'results' key.
-        # Use an empty list as a default to prevent errors.
-        comparison_results_list = comparison_results.get('results', [])
-
-        # --- Derive a single summary and score from the list of claims ---
-        supported_count = sum(1 for claim in comparison_results_list if claim.get('status') == 'supported')
-        total_claims = len(comparison_results_list)
-
-        # Calculate a score as a percentage of supported claims.
-        score = int((supported_count / total_claims) * 100) if total_claims > 0 else 0
-        
-        # Create a truth summary by joining all the explanations.
-        truth_summary = " ".join([claim.get('explanation', '') for claim in comparison_results_list])
-        
-        # The entities field seems to be missing from the results.
-        entities = None
-
-        # --- Now, extract the necessary attributes from the top-level results ---
-        caption = results.get('caption')
-        
-        # Create a dictionary with all the data to be inserted
-        data = {
-            'scan_id': scan_id, 
-            'caption': caption,
-            'truth_summary': truth_summary,
-            'score': score,
-            'mismatch_reason': 'N/A - See truth_summary', # You can set a default value here
-            'entities': entities
+        # Prepare the data for insertion
+        result_to_save = {
+            "scan_id": scan_id,
+            "caption": caption,
+            "truth_summary": analysis_data.get("truth_summary", "Analysis failed"),
+            "score": analysis_data.get("score", 0),
+            "mismatch_reason": analysis_data.get("mismatch_reason", "N/A"),
+            "entities": json.dumps(analysis_data.get("entities", {})) # Entities should be a JSON string
         }
         
-        print(f"Saving scan result for scan_id {scan_id} with caption: {caption}, truth_summary: {truth_summary}, score: {score}, mismatch_reason: {data['mismatch_reason']}, entities: {entities}")
+        logger.info(f"Saving scan result for scan_id {scan_id} with caption: {caption}, truth_summary: {result_to_save.get('truth_summary')}, score: {result_to_save.get('score')}, mismatch_reason: {result_to_save.get('mismatch_reason')}, entities: {result_to_save.get('entities')}")
 
-        # Insert the data into the 'scan_results' table.
-        supabase.table('scan_results').insert([data]).execute()
+        # The core Supabase insert operation
+        response = supabase.table("scan_results").insert(result_to_save).execute()
         
-        logger.info("Scan result saved successfully!")
-        return True
+        if response.data:
+            logger.info("Scan result saved successfully!")
+            return True
+        else:
+            logger.error(f"Failed to save scan result. Supabase response: {response.data}")
+            return False
 
     except Exception as e:
-        logger.error(f"Failed to save scan result {scan_id}: {e}")
-        raise
+        logger.error(f"An unexpected error occurred while saving to Supabase: {e}", exc_info=True)
+        return False
+
+def get_scan_result(supabase: Client, scan_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Retrieves a single scan result from the database by scan_id.
+    """
+    try:
+        response = supabase.table("scan_results").select("*").eq("scan_id", scan_id).execute()
+        
+        if response.data:
+            # The result is a list, so we take the first item
+            return response.data[0]
+        else:
+            logger.warning(f"No scan result found for scan_id: {scan_id}")
+            return None
+    except Exception as e:
+        logger.error(f"Failed to retrieve scan result for scan_id {scan_id}: {e}")
+        return None

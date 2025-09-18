@@ -25,4 +25,8 @@ supabase
 
 google-generativeai
 
+rq
 
+torch
+
+openai-whisper

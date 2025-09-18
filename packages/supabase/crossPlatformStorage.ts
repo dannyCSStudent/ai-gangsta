@@ -1,14 +1,24 @@
 // packages/supabase/crossPlatformStorage.ts
-// This file is used for web builds (Next.js)
+
+let memoryStore: Record<string, string> = {};
 
 export const CrossPlatformStorage = {
   getItem: async (key: string) => {
-    return window.localStorage.getItem(key);
+    if (typeof window !== "undefined" && window.localStorage) {
+      return window.localStorage.getItem(key);
+    }
+    return memoryStore[key] ?? null;
   },
   setItem: async (key: string, value: string) => {
-    return window.localStorage.setItem(key, value);
+    if (typeof window !== "undefined" && window.localStorage) {
+      return window.localStorage.setItem(key, value);
+    }
+    memoryStore[key] = value;
   },
   removeItem: async (key: string) => {
-    return window.localStorage.removeItem(key);
+    if (typeof window !== "undefined" && window.localStorage) {
+      return window.localStorage.removeItem(key);
+    }
+    delete memoryStore[key];
   },
 };

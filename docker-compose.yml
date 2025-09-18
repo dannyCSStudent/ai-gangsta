@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # The Redis database service. This uses a pre-built image from Docker Hub.
+  my-redis-db:
+    image: redis:7-alpine
+    container_name: my-redis-db
+    ports:
+      - "6379:6379"
+
+  # The main FastAPI application service.
+  api:
+    build:
+      context: ./apps/backend-fastapi
+      dockerfile: Dockerfile
+    container_name: api-server
+    # This command starts the FastAPI server.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 3002
+    ports:
+      - "3002:3002"
+    # This ensures the API server won't start until the Redis container is ready.
+    depends_on:
+      - my-redis-db
+    # This mounts your local code into the container so you get live updates.
+    volumes:
+      - ./apps/backend-fastapi:/app
+
+  # The RQ worker for text analysis tasks.
+  worker-text:
+    build:
+      context: ./apps/backend-fastapi
+      dockerfile: Dockerfile
+    container_name: rq-worker-text
+    command: rq worker text_analysis_queue --results-ttl 900 --url redis://my-redis-db:6379
+    # The workers also depend on the Redis service.
+    depends_on:
+      - my-redis-db # Make sure this matches the Redis service name
+    volumes:
+      - ./apps/backend-fastapi:/app
+
+  # The RQ worker for general analysis tasks.
+  worker-analysis:
+    build:
+      context: ./apps/backend-fastapi
+      dockerfile: Dockerfile
+    container_name: rq-worker-analysis
+    # This command starts the general analysis worker and connects to the Redis service by its container name.
+    command: rq worker analysis_queue --results-ttl 900 --url redis://my-redis-db:6379
+    depends_on:
+      - my-redis-db # Make sure this matches the Redis service name
+    volumes:
+      - ./apps/backend-fastapi:/app

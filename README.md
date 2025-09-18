@@ -65,21 +65,6 @@ Built using **React Native + Expo** with shared logic between:
 
 ---
 
-## 📂 Folder Structure (Monorepo)
-
-ai-gangsta/
-├── apps/
-│ ├── backend-fastapi/ # FastAPI backend (author match, news scan, etc.)
-│ └── frontend-mobile/ # Expo React Native app
-├── packages/
-│ ├── ai-components/ # Shared AI-powered UI components
-│ └── tailwind/ # Shared design system config
-├── supabase/ # Supabase schema + migrations
-├── .env # Root env file
-└── README.md # You're looking at it
-
----
-
 ## 🔐 Environment Setup
 
 Create `.env` files in:

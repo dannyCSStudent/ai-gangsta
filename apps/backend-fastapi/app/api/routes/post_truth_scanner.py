@@ -5,19 +5,17 @@ import uuid
 import logging
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 # --- Import and setup RQ for job queueing ---
 from redis import Redis
 from rq import Queue
 from rq.job import Job
-
-# Import the background task function directly
-from app.services.tasks import perform_analysis_job_sync
 
 # --- Supabase Imports ---
 from supabase.client import create_client, Client
@@ -40,6 +38,12 @@ router = APIRouter()
 # --- Redis Setup for RQ ---
 redis_conn = Redis.from_url(REDIS_URL)
 q = Queue('analysis_queue', connection=redis_conn)
+text_analysis_queue = Queue('text_analysis_queue', connection=redis_conn)
+
+# --- Define the Pydantic model for the JSON payload ---
+class ScanInput(BaseModel):
+    text: str
+    scan_id: str
 
 async def save_upload_to_temp(upload: UploadFile) -> Path:
     """Saves an uploaded file to a temporary location and returns the path."""
@@ -68,8 +72,9 @@ async def analyze_post_endpoint(caption: str = Form(...), media: UploadFile = Fi
     try:
         # Enqueue the job using RQ's built-in method
         # Pass the generated scan_id to the worker function
+        # NOW USING THE STRING PATH to avoid import errors
         job = q.enqueue(
-            perform_analysis_job_sync, 
+            'app.services.tasks.perform_analysis_job_sync', 
             caption, 
             str(media_path), 
             scan_id
@@ -125,3 +130,66 @@ async def get_all_scans():
     except Exception as e:
         logger.error(f"Failed to retrieve all scan results: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve scan history from database.")
+
+@router.post("/analyze-text")
+async def analyze_text_endpoint(data: ScanInput): # <-- Updated parameter to use the Pydantic model
+    """
+    Submits a block of text for analysis.
+    Returns a job ID immediately.
+    """
+    try:
+        # NOW USING THE STRING PATH to avoid import errors
+        job = text_analysis_queue.enqueue(
+            'app.services.tasks.perform_text_analysis_job', 
+            data.text, # <-- Use the 'text' field from the Pydantic model
+            data.scan_id # <-- Use the 'scan_id' field from the Pydantic model
+        )
+        logger.info(f"Submitted text analysis job {job.id} with scan_id {data.scan_id} to Redis queue.")
+        # Return the scan_id so the frontend can poll for the result
+        return JSONResponse(status_code=202, content={"message": "Analysis job submitted.", "scan_id": data.scan_id})
+    except Exception as e:
+        logger.exception("Failed to submit job to queue")
+        raise HTTPException(status_code=500, detail="Failed to submit analysis job.")
+
+@router.get("/text-scan-results/{scan_id}")
+async def get_text_scan_results(scan_id: str):
+    """
+    Retrieves the results of a completed text analysis job from Supabase.
+    This endpoint is polled by the frontend.
+    """
+    response = supabase.table("scan_results").select("*").eq("scan_id", scan_id).execute()
+    
+    results = response.data
+    if not results:
+        # If no results are found, the job is not yet complete.
+        # This is the expected behavior for a polling endpoint.
+        raise HTTPException(status_code=404, detail="Analysis results not yet available or scan_id is invalid.")
+        
+    result = results[0]
+    
+    # Get the entities and ensure it's a dictionary
+    print("This is the result :", result)
+    entities_data = result.get("entities")
+    print("This is the entities data :", entities_data)
+    if isinstance(entities_data, str):
+        try:
+            # If it's a string, attempt to parse it as JSON
+            entities_data = json.loads(entities_data)
+        except json.JSONDecodeError:
+            # If the string is invalid JSON, default to an empty dictionary
+            entities_data = {}
+    elif not isinstance(entities_data, dict):
+        # If it's not a string or a dict (e.g., None), default to an empty dictionary
+        entities_data = {}
+
+    # Create a new, clean dictionary for the response
+    print("This is the entities data after processing :", entities_data)
+    response_data: Dict[str, Any] = {
+        "truth_summary": result.get("truth_summary", ""),
+        "score": result.get("score", 0),
+        "mismatch_reason": result.get("mismatch_reason", "N/A"),
+        "entities": entities_data,
+        "scan_id": result.get("scan_id", scan_id)
+    }
+
+    return JSONResponse(content=response_data, status_code=200)

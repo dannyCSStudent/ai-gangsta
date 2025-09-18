@@ -1,5 +1,4 @@
-// packages/supabase/supabaseClient.ts
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 import { CrossPlatformStorage } from './crossPlatformStorage';
 
 // Define the environment variables, prioritizing the Next.js ones.
@@ -19,3 +18,5 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
     detectSessionInUrl: typeof window !== 'undefined',
   },
 });
+
+export { Session };

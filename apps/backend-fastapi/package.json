@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-      "dev": "./dev.sh",
+      "dev": "cd ../.. && docker compose up --build",
       "start": "python -m uvicorn main:app --port ${FASTAPI_PORT:-3002}",
       "lint": "flake8",
       "test": "pytest"

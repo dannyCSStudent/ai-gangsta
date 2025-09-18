@@ -170,10 +170,12 @@ export default function App() {
   const renderMediaPreview = () => {
     if (!selectedFile) return null;
     const fileUrl = URL.createObjectURL(selectedFile);
-
+    // need to check if the attributes of width and height are correct ??????????????????????????????????????????????????
     if (selectedFile.type.startsWith("image/")) {
       return (
         <Image
+          width={400}
+          height={300}
           src={fileUrl}
           alt="Media preview"
           className="w-full h-48 object-contain rounded-lg mt-4 border border-zinc-200 dark:border-zinc-700"

@@ -13,7 +13,7 @@ logger = logging.getLogger("worker")
 
 # --- Import the background task logic ---
 # This is the crucial line that tells the worker where to find the job function.
-from tasks import perform_analysis_job
+from app.services.tasks import perform_analysis_job
 
 # -----------------
 # Main Worker Loop
