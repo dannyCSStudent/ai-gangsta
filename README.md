@@ -76,9 +76,6 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 GROQ_API_KEY=your-groq-api-key
 
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-
 Request:
 {
   "text": "We must build bridges, not walls."

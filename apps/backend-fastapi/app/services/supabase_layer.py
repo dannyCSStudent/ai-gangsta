@@ -24,7 +24,27 @@ def get_supabase_client() -> Client:
         logger.error(f"Failed to connect to Supabase: {e}")
         raise
 
-def save_scan_result_to_supabase(scan_id: str, results: dict):
+def save_scan_result_to_supabase(scan_id: str, results: dict, caption: str, user_id: str):
+    try:
+        supabase_client = get_supabase_client()
+        
+        data_to_insert = {
+            "scan_id": scan_id,
+            "caption": caption,
+            "results": results,  # can be null initially
+            "user_id": user_id,
+        }
+        
+        response = supabase_client.table('scan_results').insert(data_to_insert).execute()
+        
+        if response.data:
+            logger.info(f"Scan result {scan_id} successfully saved to Supabase.")
+        else:
+            logger.error(f"Failed to save scan result {scan_id} to Supabase: {response.data}")
+    except Exception as e:
+        logger.error(f"An error occurred while saving to Supabase: {e}")
+        raise
+
     """
     Saves the analysis results to a Supabase table.
     

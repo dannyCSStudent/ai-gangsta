@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # The Redis database service. This uses a pre-built image from Docker Hub.
@@ -24,6 +23,10 @@ services:
     # This mounts your local code into the container so you get live updates.
     volumes:
       - ./apps/backend-fastapi:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      # IMPORTANT: Tell the API where to find Redis using its service name
+      - REDIS_URL=redis://my-redis-db:6379
 
   # The RQ worker for text analysis tasks.
   worker-text:
@@ -31,12 +34,18 @@ services:
       context: ./apps/backend-fastapi
       dockerfile: Dockerfile
     container_name: rq-worker-text
-    command: rq worker text_analysis_queue --results-ttl 900 --url redis://my-redis-db:6379
+    # Explicitly set the python path for the command
+    command: sh -c "export PYTHONPATH=/app && rq worker text_analysis_queue --results-ttl 900 --url redis://my-redis-db:6379"
     # The workers also depend on the Redis service.
     depends_on:
       - my-redis-db # Make sure this matches the Redis service name
     volumes:
       - ./apps/backend-fastapi:/app
+    environment:
+      # This is the crucial line to ensure the Python interpreter can find your modules
+      - PYTHONPATH=/app
+      # IMPORTANT: The worker needs the Redis URL too
+      - REDIS_URL=redis://my-redis-db:6379
 
   # The RQ worker for general analysis tasks.
   worker-analysis:
@@ -45,8 +54,13 @@ services:
       dockerfile: Dockerfile
     container_name: rq-worker-analysis
     # This command starts the general analysis worker and connects to the Redis service by its container name.
-    command: rq worker analysis_queue --results-ttl 900 --url redis://my-redis-db:6379
+    command: sh -c "export PYTHONPATH=/app && rq worker analysis_queue --results-ttl 900 --url redis://my-redis-db:6379"
     depends_on:
       - my-redis-db # Make sure this matches the Redis service name
     volumes:
       - ./apps/backend-fastapi:/app
+    environment:
+      # This is the crucial line to ensure the Python interpreter can find your modules
+      - PYTHONPATH=/app
+      # IMPORTANT: The worker needs the Redis URL too
+      - REDIS_URL=redis://my-redis-db:6379

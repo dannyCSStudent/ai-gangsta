@@ -2,10 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@repo/supabase';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 
-/**
- * Interface for the analysis result from the API.
- */
 interface AnalysisResult {
   scan_id: string;
   truth_summary: string;
@@ -18,14 +24,11 @@ interface AnalysisResult {
   };
 }
 
-/**
- * Interface for a saved analysis item in Supabase.
- */
 interface SavedAnalysis {
-  id: string;
+  scan_id: string;
   created_at: string;
-  content: string;
-  summary: string;
+  caption: string;
+  truth_summary: string;
   score: number;
   mismatch_reason: string;
   entities: {
@@ -35,19 +38,13 @@ interface SavedAnalysis {
   };
 }
 
-/**
- * Utility to determine the color of the score badge.
- */
 const getScoreColor = (score: number) => {
   if (score <= 10) return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
   if (score <= 50) return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
   return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-200';
 };
 
-/**
- * Defines the base URL for the API.
- */
-const getBaseUrl = () => "http://localhost:3002";
+const getBaseUrl = () => 'http://localhost:3002';
 
 export default function TextAnalysisPage() {
   const [inputText, setInputText] = useState('');
@@ -55,15 +52,13 @@ export default function TextAnalysisPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [showResult, setShowResult] = useState(false);
-  
   const [userSession, setUserSession] = useState<any | null>(null);
   const [history, setHistory] = useState<SavedAnalysis[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
-  
-  // New state for the search query
+  const [latestScanId, setLatestScanId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // UseEffect hook to handle Supabase authentication and data fetching
+  // Handle auth
   useEffect(() => {
     const handleAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -76,154 +71,172 @@ export default function TextAnalysisPage() {
         }
       }
     };
-
     handleAuth();
   }, []);
 
-  // UseEffect hook to fetch history and set up real-time subscription
+  // Fetch history + realtime subscription
   useEffect(() => {
-    if (!userSession) return;
+  if (!userSession) return;
 
-    // Fetch initial history
-    const fetchHistory = async () => {
-      setHistoryLoading(true);
+  let isMounted = true; // for cleanup in async calls
+
+  // --- Fetch initial history ---
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    try {
       let query = supabase
-        .from('analyses')
+        .from('scan_results')
         .select('*')
-        .eq('user_id', userSession.user.id);
-      
-      // If a search query exists, add a filter to the Supabase query
+        .eq('user_id', userSession.user.id)
+        .order('created_at', { ascending: false });
+
       if (searchQuery) {
-        query = query.ilike('content', `%${searchQuery}%`);
+        query = query.ilike('caption', `%${searchQuery}%`);
       }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching history:', error);
-      } else {
+      } else if (isMounted) {
         setHistory(data as SavedAnalysis[]);
       }
-      setHistoryLoading(false);
-    };
+    } catch (err) {
+      console.error('Unexpected error fetching history:', err);
+    } finally {
+      if (isMounted) setHistoryLoading(false);
+    }
+  };
 
-    fetchHistory();
+  fetchHistory();
 
-    // Set up real-time subscription for new analyses
-    const subscription = supabase
-      .channel('public:analyses')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'analyses', filter: `user_id=eq.${userSession.user.id}` },
-        (payload: any) => {
-          // If a new item is inserted and no search is active, add it to the list
-          if (!searchQuery) {
-            setHistory(prevHistory => [payload.new as SavedAnalysis, ...prevHistory]);
-          }
+  // --- Real-time subscription ---
+  const subscription = supabase
+    .channel('public:scan_results')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'scan_results',
+        filter: `user_id=eq.${userSession.user.id}`,
+      },
+      (payload: any) => {
+        if (!isMounted) return;
+
+        // Prepend new history
+        setHistory(prev => [payload.new as SavedAnalysis, ...prev]);
+
+        // Auto-display if this is the latest scan
+        if (payload.new.scan_id === latestScanId) {
+          setResult(payload.new as AnalysisResult);
+          setShowResult(true);
+          setLoading(false);
         }
-      )
-      .subscribe();
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'scan_results',
+        filter: `user_id=eq.${userSession.user.id}`,
+      },
+      (payload: any) => {
+        if (!isMounted) return;
 
-    // Clean up subscription on component unmount
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [userSession, searchQuery]); // Re-run effect when searchQuery changes
+        // Update existing history item
+        setHistory(prev =>
+          prev.map(item => (item.scan_id === payload.new.scan_id ? payload.new : item))
+        );
 
-  const pollForResults = async (scanId: string) => {
+        // Auto-display if this is the latest scan
+        if (payload.new.scan_id === latestScanId) {
+          setResult(payload.new as AnalysisResult);
+          setShowResult(true);
+          setLoading(false);
+        }
+      }
+    )
+    .subscribe();
+
+  // --- Polling for latest scan (only if needed) ---
+  const pollLatestScan = async () => {
+    if (!latestScanId) return;
+
     let attempts = 0;
     const maxAttempts = 20;
     const pollInterval = 2000;
 
-    while (attempts < maxAttempts) {
+    while (attempts < maxAttempts && isMounted) {
       try {
-        const response = await fetch(`${getBaseUrl()}/text-scan-results/${scanId}`);
-
+        const response = await fetch(`${getBaseUrl()}/text-scan-results/${latestScanId}`);
         if (response.ok) {
-          const data = await response.json();
-          setResult(data as AnalysisResult);
-          setLoading(false);
+          const data = (await response.json()) as AnalysisResult;
+          setResult(data);
           setShowResult(true);
-
-          // Save the analysis to Supabase
-          if (userSession) {
-            const { error: saveError } = await supabase
-              .from('analyses')
-              .insert({
-                user_id: userSession.user.id,
-                content: inputText,
-                score: data.score,
-                summary: data.truth_summary,
-                entities: data.entities,
-                mismatch_reason: data.mismatch_reason,
-              });
-            if (saveError) {
-              console.error('Error saving analysis to Supabase:', saveError);
-            }
-          }
+          setLoading(false);
           return;
         } else if (response.status === 202 || response.status === 404) {
-          console.log(`Polling for results... Attempt ${attempts + 1}`);
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          await new Promise(res => setTimeout(res, pollInterval));
         } else {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || `Server error: ${response.status}`);
+          const errData = await response.json();
+          throw new Error(errData.detail || `Server error: ${response.status}`);
         }
-      } catch (e: unknown) {
-        let message = "An unknown error occurred.";
-        if (e instanceof Error) {
-          message = e.message;
-        }
-        console.error("Polling failed:", e);
-        setError(`Analysis failed: ${message}`);
-        setLoading(false);
-        setShowResult(true);
-        return;
+      } catch (err) {
+        console.error('Polling failed:', err);
       }
       attempts++;
     }
 
-    setError("Analysis timed out. Please try again.");
-    setLoading(false);
-    setShowResult(true);
+    if (isMounted) {
+      setError('Analysis timed out. Please try again.');
+      setShowResult(true);
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!inputText) return;
+  pollLatestScan();
+
+  // --- Cleanup ---
+  return () => {
+    isMounted = false;
+    subscription.unsubscribe();
+  };
+}, [userSession, searchQuery, latestScanId]);
+
+
+  const handleSubmit = async () => {
+    if (!inputText || !userSession) return;
 
     setLoading(true);
     setError(null);
     setResult(null);
     setShowResult(false);
-    
+
     const newScanId = crypto.randomUUID();
+    setLatestScanId(newScanId);
 
     try {
       const response = await fetch(`${getBaseUrl()}/analyze-text`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: inputText, scan_id: newScanId }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: inputText, scan_id: newScanId, user_id: userSession.user.id }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.detail || `Server error: ${response.status}`);
       }
-
-      pollForResults(newScanId);
-
+      // pollForResults(newScanId);
     } catch (e: unknown) {
-      let message = "An unknown error occurred.";
-      if (e instanceof Error) {
-        message = e.message;
-      }
-      console.error("Analysis failed:", e);
+      let message = 'An unknown error occurred.';
+      if (e instanceof Error) message = e.message;
+      console.error('Analysis failed:', e);
       setError(`Analysis failed: ${message}`);
       setLoading(false);
       setShowResult(true);
+      Alert.alert('Analysis Failed', `Error: ${message}`);
     }
   };
 
@@ -235,148 +248,177 @@ export default function TextAnalysisPage() {
   };
 
   const getEntitiesDisplay = () => {
-    if (!result?.entities) return 'None found.';
+    if (!result?.entities) return <Text>None found.</Text>;
+    const { persons = [], organizations = [], locations = [] } = result.entities;
+    if (!persons.length && !organizations.length && !locations.length) return <Text>None found.</Text>;
 
-    const entities = result.entities;
-    const parts = [];
-
-    if (entities.persons?.length > 0) parts.push(`People: ${entities.persons.join(', ')}`);
-    if (entities.organizations?.length > 0) parts.push(`Organizations: ${entities.organizations.join(', ')}`);
-    if (entities.locations?.length > 0) parts.push(`Locations: ${entities.locations.join(', ')}`);
-    
-    return parts.length > 0 ? parts.join('\n') : 'None found.';
+    return (
+      <View>
+        {persons.length > 0 && (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ fontWeight: '600' }}>People:</Text>
+            {persons.map((p, idx) => <Text key={`person-${idx}`} style={{ marginLeft: 8 }}>• {p}</Text>)}
+          </View>
+        )}
+        {organizations.length > 0 && (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ fontWeight: '600' }}>Organizations:</Text>
+            {organizations.map((o, idx) => <Text key={`org-${idx}`} style={{ marginLeft: 8 }}>• {o}</Text>)}
+          </View>
+        )}
+        {locations.length > 0 && (
+          <View>
+            <Text style={{ fontWeight: '600' }}>Locations:</Text>
+            {locations.map((l, idx) => <Text key={`loc-${idx}`} style={{ marginLeft: 8 }}>• {l}</Text>)}
+          </View>
+        )}
+      </View>
+    );
   };
 
   const handleHistoryItemClick = (analysis: SavedAnalysis) => {
-    setInputText(analysis.content);
-    setResult({
-      scan_id: analysis.id,
-      truth_summary: analysis.summary,
-      score: analysis.score,
-      mismatch_reason: analysis.mismatch_reason,
-      entities: analysis.entities,
-    });
+    setInputText(analysis.caption);
+    setResult(analysis);
     setShowResult(true);
   };
 
-  return (
-    <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
-      <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 shadow-xl border border-zinc-100 dark:border-zinc-800 transition-all duration-300 transform scale-100 opacity-100">
-        <h1 className="text-3xl font-bold text-center mb-6">Text Truth Scanner</h1>
-        
-        {!showResult ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <label htmlFor="inputText" className="block text-sm font-medium">
-              Enter text or paste a news article summary to analyze
-            </label>
-            <textarea
-              id="inputText"
-              name="inputText"
-              rows={8}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="w-full resize-y rounded-lg border-2 border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-3 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
-              placeholder="Paste your text here..."
-            />
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center space-x-2 rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold shadow-md transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300 dark:disabled:bg-blue-800"
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center space-x-2">
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Analyzing...</span>
-                </span>
-              ) : (
-                <span>Analyze Text</span>
-              )}
-            </button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold mb-4 text-center">Analysis Results</h2>
-            {error ? (
-              <p className="text-red-500 text-center">{error}</p>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
-                  <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
-                    <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Score</p>
-                    <div className={`mt-1 inline-block px-3 py-1 rounded-full text-lg font-bold ${getScoreColor(result?.score || 0)}`}>
-                      {result?.score !== null && result?.score !== undefined ? `${result?.score.toFixed(1)}%` : 'N/A'}
-                    </div>
-                  </div>
-                  <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
-                    <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Mismatch Reason</p>
-                    <p className="text-lg font-bold mt-1 break-words">{result?.mismatch_reason || 'N/A'}</p>
-                  </div>
-                </div>
-                
-                <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
-                  <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Summary</p>
-                  <p className="mt-1 break-words">{result?.truth_summary || 'N/A'}</p>
-                </div>
-
-                <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
-                  <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Entities</p>
-                  <p className="mt-1 whitespace-pre-wrap">{getEntitiesDisplay()}</p>
-                </div>
-              </div>
-            )}
-            <button
-              onClick={handleReset}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold shadow-md transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Analyze Another Text
-            </button>
-          </div>
-        )}
-
-        <hr className="my-8 border-t-2 border-zinc-200 dark:border-zinc-700" />
-
-        {/* New History Section */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-center mb-4">Your Analysis History</h2>
+    return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16, backgroundColor: '#FAFAFA' }}>
+      <ScrollView contentContainerStyle={{ alignItems: 'center' }}>
+        <View style={{ width: '100%', maxWidth: 600, backgroundColor: 'white', borderRadius: 16, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 }}>
           
-          {/* New Search Input */}
-          <div className="mb-4">
-            <input
-              type="text"
+          <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 24 }}>Text Truth Scanner</Text>
+
+          {!showResult ? (
+            <View style={{ width: '100%' }}>
+              <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>
+                Enter text or paste a news article summary to analyze
+              </Text>
+              <TextInput
+                style={{ width: '100%', minHeight: 120, borderWidth: 1, borderColor: '#D4D4D8', borderRadius: 8, padding: 12, backgroundColor: '#F4F4F5', textAlignVertical: 'top' }}
+                multiline
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder="Paste your text here..."
+              />
+              <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 16,
+                  backgroundColor: loading ? '#93C5FD' : '#2563EB',
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 8,
+                }}
+              >
+                {loading ? (
+                  <>
+                    <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={{ color: '#fff', fontWeight: '600' }}>Analyzing...</Text>
+                  </>
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '600' }}>Analyze Text</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ width: '100%' }}>
+              <Text style={{ fontSize: 24, fontWeight: '600', textAlign: 'center', marginBottom: 16 }}>Analysis Results</Text>
+              {error ? (
+                <Text style={{ color: '#EF4444', textAlign: 'center' }}>{error}</Text>
+              ) : (
+                <View style={{ width: '100%' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <View style={{ flex: 1, marginRight: 8, backgroundColor: '#F4F4F5', padding: 16, borderRadius: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#71717A' }}>Score</Text>
+                      <View style={{ marginTop: 4, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 9999, backgroundColor: '#D1FAE5' }}>
+                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#10B981' }}>
+                          {result?.score !== null && result?.score !== undefined ? `${result?.score.toFixed(1)}%` : 'N/A'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 8, backgroundColor: '#F4F4F5', padding: 16, borderRadius: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#71717A' }}>Mismatch Reason</Text>
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', marginTop: 4 }}>{result?.mismatch_reason || 'N/A'}</Text>
+                    </View>
+                  </View>
+
+                  <View style={{ backgroundColor: '#F4F4F5', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#71717A' }}>Summary</Text>
+                    <Text style={{ marginTop: 4 }}>{result?.truth_summary || 'N/A'}</Text>
+                  </View>
+
+                  <View style={{ backgroundColor: '#F4F4F5', padding: 16, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#71717A' }}>Entities</Text>
+                    <View style={{ marginTop: 4 }}>
+                      {getEntitiesDisplay()}
+                    </View>
+                  </View>
+                </View>
+              )}
+              <TouchableOpacity
+                onPress={handleReset}
+                style={{
+                  width: '100%',
+                  marginTop: 16,
+                  backgroundColor: '#2563EB',
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '600' }}>Analyze Another Text</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={{ height: 2, width: '100%', backgroundColor: '#E5E7EB', marginVertical: 32 }} />
+
+          {/* History Section */}
+          <View style={{ width: '100%' }}>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }}>Your Analysis History</Text>
+
+            <TextInput
+              style={{ width: '100%', borderWidth: 1, borderColor: '#D4D4D8', borderRadius: 8, padding: 12, backgroundColor: '#F4F4F5', marginBottom: 16 }}
               placeholder="Search history..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border-2 border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-3 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+              onChangeText={setSearchQuery}
             />
-          </div>
 
-          {historyLoading ? (
-            <div className="flex justify-center items-center">
-              <div className="h-6 w-6 border-2 border-zinc-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="ml-2 text-zinc-500">Loading history...</span>
-            </div>
-          ) : history.length === 0 ? (
-            <p className="text-center text-zinc-500 italic">No history found. Start by analyzing some text!</p>
-          ) : (
-            <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-              {history.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleHistoryItemClick(item)}
-                  className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition duration-200"
-                >
-                  <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 truncate">
-                    {item.content}
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                    Analyzed on: {new Date(item.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+            {historyLoading ? (
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="#71717A" />
+                <Text style={{ marginLeft: 8, color: '#71717A' }}>Loading history...</Text>
+              </View>
+            ) : history.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#71717A', fontStyle: 'italic' }}>No history found. Start by analyzing some text!</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 320 }}>
+                {history.map((item, index) => (
+                  <TouchableOpacity
+                    key={item.scan_id || `history-${index}`}
+                    onPress={() => handleHistoryItemClick(item)}
+                    style={{ backgroundColor: '#F4F4F5', padding: 16, borderRadius: 8, marginBottom: 12 }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#404040', textDecorationLine: 'underline' }}>
+                      {item.caption}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#71717A', marginTop: 4 }}>
+                      Analyzed on: {new Date(item.created_at).toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

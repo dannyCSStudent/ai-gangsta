@@ -128,7 +128,7 @@ export default function TextAnalysisPage() {
 
     while (attempts < maxAttempts) {
       try {
-        const response = await fetch(`${getBaseUrl()}/text-scan-results/${scanId}`);
+        const response = await fetch(`${getBaseUrl()}//${scanId}`);
 
         if (response.ok) {
           const data = await response.json();

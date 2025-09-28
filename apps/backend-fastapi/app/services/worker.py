@@ -21,7 +21,7 @@ from app.services.tasks import perform_analysis_job
 
 if __name__ == '__main__':
     # Get Redis connection details from environment variables
-    redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379")
+    redis_url = os.environ.get("REDIS_URL", "redis://my-redis-db:6379")
 
     # Connect to Redis
     try:
