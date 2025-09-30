@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { supabase, Session } from '@repo/supabase'
+import { v4 as uuidv4 } from 'uuid'; // <-- 1. IMPORT uuidv4
+// ❌ REMOVED: import { Platform } from 'react-native'; 
 
 /**
  * Interface for the analysis result from the API.
@@ -41,7 +43,20 @@ const getScoreColor = (score: number) => {
   return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
 }
 
-const getBaseUrl = () => 'http://localhost:3002'
+// ✅ FIXED: Using native JavaScript checks for the web environment
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // We are running in the browser (web).
+    // Use the proxy path if configured (e.g., in next.config.js) to handle CORS locally.
+    // If no proxy is set, you can use 'http://localhost:3002', but you risk CORS errors.
+    return '/api'; 
+  }
+  
+  // This block is only for server-side code or if you need other environments,
+  // but for a client component, the above is sufficient.
+  // We keep the original local URL as a fallback if no proxy is desired/configured.
+  return 'http://localhost:3002'
+}
 
 export default function TextAnalysisPage() {
   const [session, setSession] = useState<Session | null>(null)
@@ -94,6 +109,7 @@ export default function TextAnalysisPage() {
       const { data, error } = await supabase
         .from('analyses')
         .select('*')
+        .eq('user_id', session.user.id) // Filter for current user's history
         .ilike('content', `%${searchQuery}%`)
         .order('created_at', { ascending: false })
 
@@ -111,7 +127,7 @@ export default function TextAnalysisPage() {
     // Set up real-time subscription for new data
     const subscription = supabase
       .channel('public:analyses')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'analyses' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'analyses', filter: `user_id=eq.${session.user.id}` }, () => {
         fetchHistory()
       })
       .subscribe()
@@ -128,7 +144,8 @@ export default function TextAnalysisPage() {
 
     while (attempts < maxAttempts) {
       try {
-        const response = await fetch(`${getBaseUrl()}//${scanId}`);
+        // Corrected poll URL: getBaseUrl() + /text-scan-results/ + scanId
+        const response = await fetch(`${getBaseUrl()}/text-scan-results/${scanId}`); 
 
         if (response.ok) {
           const data = await response.json();
@@ -140,13 +157,13 @@ export default function TextAnalysisPage() {
           const { error } = await supabase
             .from('analyses')
             .insert({
-              user_id: session?.user.id,   // ✅ include logged-in user
+              user_id: session?.user.id,
               content: inputText,
               summary: data.truth_summary,
               score: data.score,
               mismatch_reason: data.mismatch_reason,
               entities: data.entities,
-  });
+          });
 
 
           if (error) {
@@ -166,7 +183,7 @@ export default function TextAnalysisPage() {
           message = e.message;
         }
         console.error("Polling failed:", e);
-        setError(`Analysis failed: ${message}`);
+        setError(`Analysis failed or timed out: ${message}`);
         setLoading(false);
         setShowResult(true);
         return;
@@ -181,20 +198,30 @@ export default function TextAnalysisPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!inputText) return;
+    // Ensure text and session are available
+    if (!inputText || !session?.user.id) {
+      setError('User session not loaded. Please wait or refresh.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
     setResult(null);
     setShowResult(false);
     
-    const newScanId = crypto.randomUUID();
-
+ // 2. USE uuidv4() instead of crypto.randomUUID()
+    const newScanId = uuidv4();
+    
     try {
       const response = await fetch(`${getBaseUrl()}/analyze-text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: inputText, scan_id: newScanId }),
+        body: JSON.stringify({ 
+          text: inputText, 
+          scan_id: newScanId,
+          // Fixed the missing 'user_id' and used the correct state variable 'session'
+          user_id: session.user.id 
+        }),
       });
 
       if (!response.ok) {
@@ -226,7 +253,7 @@ export default function TextAnalysisPage() {
   const handleHistoryItemClick = (analysis: SavedAnalysis) => {
     setInputText(analysis.content);
     setResult({
-      scan_id: analysis.id.toString(),
+      scan_id: analysis.id.toString(), 
       truth_summary: analysis.summary,
       score: analysis.score,
       mismatch_reason: analysis.mismatch_reason,
@@ -253,74 +280,78 @@ export default function TextAnalysisPage() {
       <div className="w-full lg:w-2/3 max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 shadow-xl border border-zinc-100 dark:border-zinc-800 transition-all duration-300 transform scale-100 opacity-100 lg:mr-4 mb-4 lg:mb-0">
         <h1 className="text-3xl font-bold text-center mb-6">Text Truth Scanner</h1>
         
-        {!showResult ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <label htmlFor="inputText" className="block text-sm font-medium">
-              Enter text or paste a news article summary to analyze
-            </label>
-            <textarea
-              id="inputText"
-              name="inputText"
-              rows={8}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="w-full resize-y rounded-lg border-2 border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-3 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
-              placeholder="Paste your text here..."
-            />
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center space-x-2 rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold shadow-md transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300 dark:disabled:bg-blue-800"
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center space-x-2">
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Analyzing...</span>
-                </span>
-              ) : (
-                <span>Analyze Text</span>
-              )}
-            </button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold mb-4 text-center">Analysis Results</h2>
-            {error ? (
-              <p className="text-red-500 text-center">{error}</p>
+        <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4"> 
+            {!showResult ? (
+              <>
+                <label htmlFor="inputText" className="block text-sm font-medium">
+                  Enter text or paste a news article summary to analyze
+                </label>
+                <textarea
+                  id="inputText"
+                  name="inputText"
+                  rows={8}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  className="w-full resize-y rounded-lg border-2 border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-3 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+                  placeholder="Paste your text here..."
+                />
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center space-x-2 rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold shadow-md transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300 dark:disabled:bg-blue-800"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center space-x-2">
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Analyzing...</span>
+                    </span>
+                  ) : (
+                    <span>Analyze Text</span>
+                  )}
+                </button>
+              </>
             ) : (
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
-                  <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
-                    <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Score</p>
-                    <div className={`mt-1 inline-block px-3 py-1 rounded-full text-lg font-bold ${getScoreColor(result?.score || 0)}`}>
-                      {result?.score !== null && result?.score !== undefined ? `${result?.score.toFixed(1)}%` : 'N/A'}
+                <h2 className="text-2xl font-semibold mb-4 text-center">Analysis Results</h2>
+                {error ? (
+                  <p className="text-red-500 text-center">{error}</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+                      <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
+                        <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Score</p>
+                        <div className={`mt-1 inline-block px-3 py-1 rounded-full text-lg font-bold ${getScoreColor(result?.score || 0)}`}>
+                          {result?.score !== null && result?.score !== undefined ? `${result?.score.toFixed(1)}%` : 'N/A'}
+                        </div>
+                      </div>
+                      <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
+                        <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Mismatch Reason</p>
+                        <p className="text-lg font-bold mt-1 break-words">{result?.mismatch_reason || 'N/A'}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
+                      <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Summary</p>
+                      <p className="mt-1 break-words">{result?.truth_summary || 'N/A'}</p>
+                    </div>
+
+                    <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
+                      <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Entities</p>
+                      <p className="mt-1 whitespace-pre-wrap">{getEntitiesDisplay()}</p>
                     </div>
                   </div>
-                  <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
-                    <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Mismatch Reason</p>
-                    <p className="text-lg font-bold mt-1 break-words">{result?.mismatch_reason || 'N/A'}</p>
-                  </div>
-                </div>
-                
-                <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
-                  <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Summary</p>
-                  <p className="mt-1 break-words">{result?.truth_summary || 'N/A'}</p>
-                </div>
-
-                <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-lg shadow-sm">
-                  <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">Entities</p>
-                  <p className="mt-1 whitespace-pre-wrap">{getEntitiesDisplay()}</p>
-                </div>
+                )}
+                <button
+                  onClick={handleReset}
+                  className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold shadow-md transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Analyze Another Text
+                </button>
               </div>
             )}
-            <button
-              onClick={handleReset}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold shadow-md transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Analyze Another Text
-            </button>
-          </div>
-        )}
+          </form>
+        </div>
       </div>
 
       <div className="w-full lg:w-1/3 max-w-sm bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 shadow-xl border border-zinc-100 dark:border-zinc-800 mt-4 lg:mt-0">

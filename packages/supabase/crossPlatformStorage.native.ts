@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const CrossPlatformStorage = {
   getItem: async (key: string) => {
+    console.log('Getting item for key from native:', key);
     if (Platform.OS === 'android' || Platform.OS === 'ios') {
       const secure = await SecureStore.getItemAsync(key);
       return secure ?? (await AsyncStorage.getItem(key));

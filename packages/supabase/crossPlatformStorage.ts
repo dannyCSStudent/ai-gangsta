@@ -4,6 +4,7 @@ let memoryStore: Record<string, string> = {};
 
 export const CrossPlatformStorage = {
   getItem: async (key: string) => {
+    console.log('Getting item for key from web:', key);
     if (typeof window !== "undefined" && window.localStorage) {
       return window.localStorage.getItem(key);
     }

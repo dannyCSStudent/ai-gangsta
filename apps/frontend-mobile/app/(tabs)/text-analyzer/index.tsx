@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 
 interface AnalysisResult {
@@ -44,8 +45,14 @@ const getScoreColor = (score: number) => {
   return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-200';
 };
 
-const getBaseUrl = () => 'http://localhost:3002';
-
+const getBaseUrl = () => {
+  // Use 10.0.2.2 for Android emulator/device to access host machine's localhost
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:3002';
+  }
+  // Use localhost for web and iOS simulator (which correctly resolves it)
+  return 'http://localhost:3002';
+};
 export default function TextAnalysisPage() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);

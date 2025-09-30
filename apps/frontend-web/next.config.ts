@@ -37,6 +37,17 @@ const nextConfig: NextConfig = {
 
     return config
   },
+
+  async rewrites() {
+    return [
+      {
+        // 1. When the browser requests this source path (which your frontend code uses)
+        source: '/api/:path*', 
+        // 2. Rewrite/Proxy the request to your FastAPI backend server
+        destination: 'http://localhost:3002/:path*', 
+      },
+    ]
+  },
 }
 
 export default nextConfig

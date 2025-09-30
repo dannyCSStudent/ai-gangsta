@@ -1,14 +1,18 @@
 import { createClient, SupabaseClient, Session } from '@supabase/supabase-js';
 import { CrossPlatformStorage } from './crossPlatformStorage';
 
-// Define the environment variables, prioritizing the Next.js ones.
-// The bundler will pick up the correct one based on the build target.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase URL and Anon Key are required.');
 }
+
+console.log('[Supabase] URL:', supabaseUrl);
+console.log('[Supabase] Key:', supabaseAnonKey ? 'present' : 'missing');
+console.log('[Supabase] Storage driver:', CrossPlatformStorage);
 
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
