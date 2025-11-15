@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     '@repo/ai-components',
     '@repo/supabase',
     'react-native-safe-area-context',
+    'react-native-web',
   ],
 
   webpack: (config) => {

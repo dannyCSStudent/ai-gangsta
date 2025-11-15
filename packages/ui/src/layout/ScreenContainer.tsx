@@ -10,7 +10,7 @@ type Props = {
 
 export function ScreenContainer({ children, className = '', style }: Props) {
   // ✅ Combined base classes: same for SSR & client
-  const baseClasses = `min-h-screen w-full p-4 ${className}`
+  const baseClasses = `min-h-screen w-full ${className}`
 
   // ✅ SSR fallback & client initial markup MUST match
   return (

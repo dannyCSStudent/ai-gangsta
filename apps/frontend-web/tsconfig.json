@@ -46,7 +46,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "components/HeroSection.tsx"  ],
   "exclude": [
     "node_modules"
   ]

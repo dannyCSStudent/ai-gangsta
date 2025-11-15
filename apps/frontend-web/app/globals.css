@@ -1,1 +1,272 @@
 @import 'tailwindcss';
+
+/* Base theme */
+body {
+  background-color: #000;
+  color: #fff;
+}
+
+/* Flicker animation — keep here since it's working */
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    opacity: 0.4;
+  }
+}
+.tron-flicker {
+  animation: flicker 3s infinite;
+}
+
+/* ✅ Inject bias pulse animations manually */
+@layer utilities {
+  @keyframes pulse-red {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(239,68,68,0.2);
+    }
+    50% {
+      box-shadow: 0 0 25px rgba(239,68,68,0.6);
+    }
+  }
+  .animate-pulse-red {
+    animation: pulse-red 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-blue {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(59,130,246,0.2);
+    }
+    50% {
+      box-shadow: 0 0 25px rgba(59,130,246,0.6);
+    }
+  }
+  .animate-pulse-blue {
+    animation: pulse-blue 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(34,197,94,0.2);
+    }
+    50% {
+      box-shadow: 0 0 25px rgba(34,197,94,0.6);
+    }
+  }
+  .animate-pulse-green {
+    animation: pulse-green 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-gray {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(107,114,128,0.2);
+    }
+    50% {
+      box-shadow: 0 0 25px rgba(107,114,128,0.5);
+    }
+  }
+  .animate-pulse-gray {
+    animation: pulse-gray 3s ease-in-out infinite;
+  }
+}
+
+@keyframes slideLeft {
+  0% { transform: translateX(100%); opacity: 0.0; }
+  15% { opacity: 1; }
+  100% { transform: translateX(-100%); opacity: 0; }
+}
+
+.animate-slideLeft {
+  animation: slideLeft 3.5s linear;
+}
+
+@keyframes pulseSlow {
+  0%, 100% { transform: translateX(-40%); }
+  50% { transform: translateX(40%); }
+}
+
+.animate-pulseSlow {
+  animation: pulseSlow 4s ease-in-out infinite;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spinSlow {
+  animation: spinSlow 6s linear infinite;
+}
+
+/* —— HOLOGRAM GRID —— */
+.hologram-grid {
+  background-image:
+    linear-gradient(rgba(0,255,255,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,255,0.12) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* —— HOLOGRAM SHIMMER —— */
+.hologram-shimmer {
+  background: radial-gradient(
+    circle at center,
+    rgba(0,255,255,0.05),
+    transparent 70%
+  );
+  animation: shimmerMove 8s infinite linear;
+}
+
+@keyframes shimmerMove {
+  0% { transform: translateX(-20%) translateY(-20%); }
+  100% { transform: translateX(20%) translateY(20%); }
+}
+
+/* —— HOLOGRAM TEXT GLOW —— */
+.hologram-text {
+  text-shadow: 0 0 8px rgba(0,255,255,0.45);
+}
+
+/* —— TICKER —— */
+@keyframes slideLeftSlow {
+  0%   { transform: translateX(100%); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translateX(-100%); opacity: 0; }
+}
+.animate-slideLeftSlow {
+  animation: slideLeftSlow 3.5s linear;
+}
+
+/* —— HOLOGRAM WAVE —— */
+.hologram-wave {
+  animation: holoWave 4s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0,255,180,0.8),
+    transparent
+  );
+}
+
+@keyframes holoWave {
+  0% { transform: translateX(-80%); }
+  50% { transform: translateX(80%); }
+  100% { transform: translateX(-80%); }
+}
+
+/* —— Slow Animations —— */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spinSlow {
+  animation: spinSlow 7s linear infinite;
+}
+
+@keyframes blinkSlow {
+  0%, 90% { opacity: 0.3; }
+  95% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+.animate-blinkSlow {
+  animation: blinkSlow 3s infinite;
+}
+
+/* —— Hologram Pulse Drop —— */
+@keyframes pulseDrop {
+  0%, 100% { transform: translateY(0); opacity: 0.8; }
+  50% { transform: translateY(2px); opacity: 1; }
+}
+.animate-pulseDrop {
+  animation: pulseDrop 2s infinite;
+}
+
+/* GRID */
+.hologram-grid {
+  background-image:
+    linear-gradient(rgba(0,255,255,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,255,0.12) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* LIGHT SWEEP */
+.hologram-sweep {
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(0,255,255,0.05) 50%,
+    transparent 100%
+  );
+  animation: sweep 6s linear infinite;
+  opacity: 0.4;
+}
+@keyframes sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* PARTICLES */
+.holo-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: rgba(0,255,255,0.5);
+  border-radius: 50%;
+  animation: particleFloat 5s infinite ease-in-out;
+}
+@keyframes particleFloat {
+  0% { transform: translateY(0px); opacity: 0.5; }
+  50% { transform: translateY(-20px); opacity: 1; }
+  100% { transform: translateY(0px); opacity: 0.5; }
+}
+
+/* HOLOGRAM RING */
+@keyframes holoRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+.animate-holoRing {
+  animation: holoRing 2s infinite;
+}
+
+/* TEXT GLOW */
+.hologram-text {
+  text-shadow: 0 0 9px rgba(0,255,255,0.5);
+}
+
+/* ROTATION */
+@keyframes rotateSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.animate-rotateSlow {
+  animation: rotateSlow 14s linear infinite;
+}
+
+/* SLIDE TEXT */
+@keyframes slideLeftSlow {
+  0% { transform: translateX(100%); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateX(-100%); opacity: 0; }
+}
+.animate-slideLeftSlow {
+  animation: slideLeftSlow 3.5s linear;
+}
+
+/* WAVE */
+@keyframes holoWave {
+  0% { transform: translateX(-80%); }
+  50% { transform: translateX(80%); }
+  100% { transform: translateX(-80%); }
+}
+.hologram-wave {
+  animation: holoWave 4s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, rgba(0,255,180,0.8), transparent);
+}
+
+

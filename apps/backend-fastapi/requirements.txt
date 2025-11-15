@@ -32,3 +32,21 @@ torch
 openai-whisper
 
 aiofiles
+
+demucs
+
+torchcodec
+
+diffq
+
+soundfile
+
+feedparser
+
+aiohttp
+
+fastapi_utils
+
+typing-inspect
+
+langdetect

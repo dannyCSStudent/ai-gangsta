@@ -1,27 +1,45 @@
+// app/layout.tsx
+import './globals.css';
+import { Inter, Orbitron } from 'next/font/google';
+import LeftSidebar from '../components/navigation/LeftSidebar';
+import TopRibbon from '../components/navigation/TopRibbon';
 
+const inter = Inter({ subsets: ['latin'], weight: ['400', '600'] });
+const orbitron = Orbitron({ subsets: ['latin'], weight: ['500', '700'] });
 
-import './globals.css'
-import Link from 'next/link'
-
-export const metadata = { title: 'Gangsta AI', description: 'Truth infrastructure' }
+export const metadata = {
+  title: 'Gangsta AI',
+  description: 'Truth Infrastructure',
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="flex flex-col min-h-screen bg-white text-gray-800">
-        <main className="flex-1">{children}</main>
+    <html lang="en" className={`${inter.className} ${orbitron.className}`}>
+      <body className="bg-tron-dark text-tron-cyan flex">
 
-        {/* Bottom Tab Bar */}
-        <nav className="flex justify-around border-t bg-white py-3 shadow-lg sticky bottom-0">
-          <Link href="/" className="text-gray-500 hover:text-blue-600">🏠 Home</Link>
-          <Link href="/news" className="text-gray-500 hover:text-blue-600">📰 News</Link>
-          <Link href="/scan" className="text-gray-500 hover:text-blue-600">🎤 Scan</Link>
-          <Link href="/scan-history" className="text-gray-500 hover:text-blue-600"> Scan History </Link>
-          <Link href="/post-truth" className="text-gray-500 hover:text-blue-600"> Post Scan </Link>
-          <Link href="/truth-scan-history" className="text-gray-500 hover:text-blue-600"> Truth Scan History </Link>
-          <Link href="/text-analyzer" className="text-gray-500 hover:text-blue-600"> Text Analyzer </Link>
-        </nav>
+        {/* --- Fixed Left Sidebar (never moves) --- */}
+        <div className="fixed left-0 top-0 h-full w-20 z-50">
+          <LeftSidebar />
+        </div>
+
+        {/* --- Main Content area pushed to the right --- */}
+        <div className="flex-1 ml-50 flex flex-col min-h-screen">
+
+          {/* --- Top Intelligence Ribbon --- */}
+          <div className="sticky top-0 z-40 bg-tron-dark/80 backdrop-blur-xl border-b  border-b-cyan-500">
+            <div className="pl-6">
+              <TopRibbon />
+            </div>
+          </div>
+
+
+          {/* --- Main page content --- */}
+          <main className="flex-1 p-6 md:p-10 lg:p-12">
+            {children}
+          </main>
+        </div>
+
       </body>
     </html>
-  )
+  );
 }
